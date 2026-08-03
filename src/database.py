@@ -1,0 +1,58 @@
+"""SQLite storage layer for normalized economic observations."""
+import sqlite3
+from contextlib import contextmanager
+import pandas as pd
+from .config import DATABASE_PATH, DATA_DIR
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS indicators (
+  indicator_id TEXT PRIMARY KEY, indicator_name TEXT NOT NULL,
+  category TEXT NOT NULL, unit TEXT, frequency TEXT, source TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS observations (
+  indicator_id TEXT NOT NULL, country_code TEXT NOT NULL, observation_date TEXT NOT NULL,
+  value REAL, source TEXT NOT NULL,
+  PRIMARY KEY (indicator_id, country_code, observation_date),
+  FOREIGN KEY (indicator_id) REFERENCES indicators(indicator_id)
+);
+CREATE INDEX IF NOT EXISTS idx_observations_country_date
+ON observations(country_code, observation_date);
+"""
+
+@contextmanager
+def connection():
+    DATA_DIR.mkdir(exist_ok=True)
+    con = sqlite3.connect(DATABASE_PATH)
+    try:
+        yield con
+        con.commit()
+    finally:
+        con.close()
+
+def initialize_database():
+    with connection() as con:
+        con.executescript(SCHEMA)
+
+def upsert_indicator(metadata: dict):
+    with connection() as con:
+        con.execute("""INSERT INTO indicators VALUES (:indicator_id,:indicator_name,:category,:unit,:frequency,:source)
+        ON CONFLICT(indicator_id) DO UPDATE SET indicator_name=excluded.indicator_name,
+        category=excluded.category, unit=excluded.unit, frequency=excluded.frequency, source=excluded.source""", metadata)
+
+def upsert_observations(frame: pd.DataFrame):
+    required = ["indicator_id", "country_code", "observation_date", "value", "source"]
+    frame = frame[required].dropna(subset=["value"]).drop_duplicates(required[:3]).copy()
+    frame["observation_date"] = pd.to_datetime(frame["observation_date"]).dt.strftime("%Y-%m-%d")
+    with connection() as con:
+        frame.to_sql("_staging", con, if_exists="replace", index=False)
+        con.execute("""INSERT OR REPLACE INTO observations
+        (indicator_id, country_code, observation_date, value, source)
+        SELECT indicator_id, country_code, observation_date, value, source FROM _staging""")
+        con.execute("DROP TABLE _staging")
+
+def read_observations() -> pd.DataFrame:
+    initialize_database()
+    with connection() as con:
+        return pd.read_sql_query("""SELECT o.*, i.indicator_name, i.category, i.unit, i.frequency
+        FROM observations o JOIN indicators i USING(indicator_id) ORDER BY observation_date""", con,
+        parse_dates=["observation_date"])
