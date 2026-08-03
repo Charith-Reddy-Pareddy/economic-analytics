@@ -1,4 +1,4 @@
-# Economic Pulse Analytics
+# Economic Analytics
 
 An end-to-end Python economic-intelligence platform for studying inflation, employment, economic growth, interest rates, wages, and consumer spending. It combines public API ingestion, SQLite, Pandas/NumPy analysis, and an interactive Plotly Dash dashboard.
 
