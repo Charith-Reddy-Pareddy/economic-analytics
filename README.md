@@ -39,17 +39,6 @@ Public APIs → fetchers.py → cleaning/feature engineering → SQLite → Dash
 
 `indicators` holds canonical metadata. `observations` stores one country, indicator, date, value, and source per row. The primary key prevents duplicate observations during repeated loads.
 
-## GitHub publishing
-
-Never commit `.env` or `data/economic_pulse.db`. Both are excluded by `.gitignore`.
-
-```bash
-git init
-git add .
-git commit -m "Build Economic Pulse Analytics dashboard"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/economic-pulse-analytics.git
-git push -u origin main
 ```
 
 ## Data sources
