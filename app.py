@@ -9,7 +9,7 @@ from dash import Dash, Input, Output, dcc, html, dash_table
 from src.database import read_observations
 from src.pipeline import make_demo_data
 from src.analysis import enrich, correlation_matrix
-from src.presentation import country_options
+from src.presentation import country_options, data_coverage
 from src.groups import group_trends
 
 BLUE = "#1677C8"
@@ -36,6 +36,7 @@ app.layout = html.Main(className="page", children=[
                   html.P("Explore inflation, employment, growth, interest rates, wages, and consumer spending through clear, data-driven visuals.")]),
         html.Div([html.Span("● ", className="live-dot"), "Interactive dashboard"], className="badge"),
     ]),
+    html.Div(id="coverage", className="coverage"),
     html.Section(className="panel filters", children=[
         html.Div([html.Label("Country"), dcc.Dropdown(id="country", clearable=False)]),
         html.Div([html.Label("Indicators"), dcc.Dropdown(id="indicator", multi=True)]),
@@ -73,15 +74,22 @@ app.layout = html.Main(className="page", children=[
 ])
 
 @app.callback(Output("country", "options"), Output("country", "value"), Output("indicator", "options"), Output("indicator", "value"),
-              Output("dates", "start_date"), Output("dates", "end_date"), Input("country", "id"))
+              Output("dates", "start_date"), Output("dates", "end_date"), Output("coverage", "children"), Input("country", "id"))
 def defaults(_):
     frame = get_data()
     countries = sorted(frame.country_code.dropna().unique())
     names = sorted(frame.indicator_name.dropna().unique())
     preferred = [x for x in ["Inflation, consumer prices", "GDP Growth", "Unemployment", "Household consumption"] if x in names]
     options = country_options(countries)
+    coverage = data_coverage(frame)
+    coverage_cards = [
+        html.Div([html.Strong(f"{coverage['countries']:,}"), html.Span("countries")]),
+        html.Div([html.Strong(f"{coverage['observations']:,}"), html.Span("observations")]),
+        html.Div([html.Strong(f"{coverage['sources']:,}"), html.Span("public sources")]),
+        html.Div([html.Strong(f"{coverage['start']:%Y}–{coverage['end']:%Y}"), html.Span("available period")]),
+    ]
     return (options, "USA" if "USA" in countries else countries[0],
-            [{"label":x,"value":x} for x in names], preferred or names[:3], frame.observation_date.min().date(), frame.observation_date.max().date())
+            [{"label":x,"value":x} for x in names], preferred or names[:3], frame.observation_date.min().date(), frame.observation_date.max().date(), coverage_cards)
 
 @app.callback(Output("summary", "children"), Output("kpis", "children"), Output("trend", "figure"), Output("scatter", "figure"), Output("heatmap", "figure"),
               Output("table", "data"), Output("table", "columns"), Input("country", "value"), Input("indicator", "value"), Input("dates", "start_date"), Input("dates", "end_date"))
