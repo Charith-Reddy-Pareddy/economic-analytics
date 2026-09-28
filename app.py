@@ -29,10 +29,10 @@ def empty_chart(message):
     fig.update_layout(template="plotly_white", height=360, xaxis={"visible": False}, yaxis={"visible": False})
     return fig
 
-app = Dash(__name__, title="Economic Pulse Analytics")
+app = Dash(__name__, title="Economic Analytics")
 app.layout = html.Main(className="page", children=[
     html.Section(className="hero", children=[
-        html.Div([html.Div("ECONOMIC INTELLIGENCE", className="eyebrow"), html.H1("Economic Pulse Analytics"),
+        html.Div([html.H1("Economic Analytics"),
                   html.P("Explore inflation, employment, growth, interest rates, wages, and consumer spending through clear, data-driven visuals.")]),
         html.Div([html.Span("● ", className="live-dot"), "Interactive dashboard"], className="badge"),
     ]),
@@ -69,7 +69,7 @@ app.layout = html.Main(className="page", children=[
             style_data_conditional=[{"if":{"row_index":"odd"}, "backgroundColor":"#F8FBFE"}]),
         dcc.Download(id="download"),
     ]),
-    html.Footer("Economic Pulse Analytics · Public economic data for education and research"),
+    html.Footer("Economic Analytics · Public economic data for education and research"),
 ])
 
 @app.callback(Output("country", "options"), Output("country", "value"), Output("indicator", "options"), Output("indicator", "value"),
