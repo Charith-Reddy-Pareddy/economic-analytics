@@ -9,6 +9,7 @@ from dash import Dash, Input, Output, dcc, html, dash_table
 from src.database import read_observations
 from src.pipeline import make_demo_data
 from src.analysis import enrich, correlation_matrix
+from src.presentation import country_options
 
 BLUE = "#1677C8"
 NAVY = "#103B66"
@@ -72,7 +73,8 @@ def defaults(_):
     countries = sorted(frame.country_code.dropna().unique())
     names = sorted(frame.indicator_name.dropna().unique())
     preferred = [x for x in ["Inflation, consumer prices", "GDP Growth", "Unemployment", "Household consumption"] if x in names]
-    return ([{"label":x,"value":x} for x in countries], "USA" if "USA" in countries else countries[0],
+    options = country_options(countries)
+    return (options, "USA" if "USA" in countries else countries[0],
             [{"label":x,"value":x} for x in names], preferred or names[:3], frame.observation_date.min().date(), frame.observation_date.max().date())
 
 @app.callback(Output("summary", "children"), Output("kpis", "children"), Output("trend", "figure"), Output("scatter", "figure"), Output("heatmap", "figure"),
