@@ -1,16 +1,13 @@
 """Presentation helpers for country-aware dashboard controls."""
 from __future__ import annotations
 
-COUNTRY_NAMES = {
-    "BRA": "Brazil", "CHN": "China", "DEU": "Germany", "GBR": "United Kingdom",
-    "IND": "India", "JPN": "Japan", "USA": "United States",
-}
+import pycountry
 
 
 def country_label(code: str) -> str:
     """Return a readable country name while preserving the ISO-3 code."""
-    name = COUNTRY_NAMES.get(code)
-    return f"{name} ({code})" if name else code
+    country = pycountry.countries.get(alpha_3=code)
+    return f"{country.name} ({code})" if country else code
 
 
 def country_options(codes: list[str]) -> list[dict[str, str]]:
