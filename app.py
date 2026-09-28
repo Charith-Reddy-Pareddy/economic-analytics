@@ -10,6 +10,7 @@ from src.database import read_observations
 from src.pipeline import make_demo_data
 from src.analysis import enrich, correlation_matrix
 from src.presentation import country_options
+from src.groups import group_trends
 
 BLUE = "#1677C8"
 NAVY = "#103B66"
@@ -46,6 +47,11 @@ app.layout = html.Main(className="page", children=[
         html.H2("Trend comparison"),
         html.P("X-axis: date. Y-axis: indexed change, where every selected indicator starts at 100. This lets you compare movement across indicators even when their original units differ."),
         dcc.Graph(id="trend", config={"displaylogo": False}),
+    ]),
+    html.Section(className="panel chart", children=[
+        html.H2("G20 and advanced-economy benchmark"),
+        html.P("X-axis: date. Y-axis: equal-weight mean for the selected indicator. Each line averages countries with reported data; this is descriptive, not GDP-weighted."),
+        dcc.Graph(id="group-trend", config={"displaylogo": False}),
     ]),
     html.Section(className="chart-grid", children=[
         html.Div(className="panel chart", children=[html.H2("Indicator relationship"),
@@ -123,6 +129,21 @@ def update(country, selected, start, end):
     display = filtered[["observation_date", "indicator_name", "category", "value", "unit", "source"]].sort_values("observation_date", ascending=False).copy()
     display["observation_date"] = display.observation_date.dt.strftime("%Y-%m-%d")
     return summary, cards, trend, scatter, heatmap, display.to_dict("records"), [{"name":x.replace("_"," ").title(),"id":x} for x in display.columns]
+
+@app.callback(Output("group-trend", "figure"), Input("indicator", "value"), Input("dates", "start_date"), Input("dates", "end_date"))
+def update_group_trend(selected, start, end):
+    if not selected or not start or not end:
+        return empty_chart("Choose an indicator and analysis period to compare economy groups.")
+    data = get_data()
+    data = data[(data.observation_date >= pd.Timestamp(start)) & (data.observation_date <= pd.Timestamp(end))]
+    trends = group_trends(data, selected[0])
+    if trends.empty:
+        return empty_chart("No group observations are available for this indicator and period.")
+    figure = px.line(trends, x="observation_date", y="value", color="group", color_discrete_sequence=PALETTE,
+                     labels={"observation_date":"Date", "value":selected[0], "group":"Benchmark group"})
+    figure.update_layout(template="plotly_white", height=410, hovermode="x unified", legend_title_text="", margin={"l":20,"r":20,"t":15,"b":20})
+    figure.update_traces(line={"width":3})
+    return figure
 
 @app.callback(Output("download", "data"), Input("download-button", "n_clicks"), Input("country", "value"), Input("indicator", "value"), prevent_initial_call=True)
 def download(clicks, country, selected):
