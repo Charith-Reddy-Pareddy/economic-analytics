@@ -30,6 +30,7 @@ def empty_chart(message):
     return fig
 
 app = Dash(__name__, title="Economic Analytics")
+server = app.server
 app.layout = html.Main(className="page", children=[
     html.Section(className="hero", children=[
         html.Div([html.H1("Economic Analytics"),
